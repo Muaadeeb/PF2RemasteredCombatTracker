@@ -1,0 +1,96 @@
+﻿@page "/weapon-upsert"
+@page "/weapon-upsert/{weaponId:int}"
+
+@inject ISnackbar Snackbar
+@inject IWeaponService WeaponService
+@inject NavigationManager NavigationManager
+
+<MudText Typo="Typo.h3">@(weaponId.HasValue ? "Edit Weapon" : "Add Weapon")</MudText>
+<EditForm Model="@weapon" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <MudGrid>
+        <MudItem xs="12" sm="7">
+            <MudCard>
+                <MudCardContent>
+                    <MudTextField @bind-Value="weapon.Name" Label="Weapon Name" Variant="Variant.Text" Required />
+                     <MudNumericField @bind-Value="weapon.DamageDie" Label="Damage Die" />
+                     <MudNumericField @bind-Value="weapon.DamageDieCount" Label="Damage Die Count" />
+                     <MudNumericField @bind-Value="weapon.DamageBonus" Label="Damage Bonus" />
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Save</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="5">
+            <MudPaper Class="pa-4 mud-height-full">
+                <MudText Typo="Typo.subtitle2">Validation Summary</MudText>
+                @if (success)
+                {
+                    <MudText Color="Color.Success">Success</MudText>
+                }
+                else
+                {
+                    <MudText Color="@Color.Error">
+                        <ValidationSummary />
+                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudText Typo="Typo.body2" Align="Align.Center">
+                Fill out the form correctly to see the success message.
+            </MudText>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+
+@code {
+    [Parameter]
+    public int? weaponId { get; set; }
+
+    private Weapon weapon = new Weapon("Default");
+    private bool success;
+
+    protected override async void OnInitialized()
+    {
+        if (weaponId.HasValue)
+        {
+            // Load the weapon by weaponId from your data source or service here.
+            // This is just a placeholder.
+            var result = await WeaponService.GetWeaponAsync(weaponId.Value);
+            if (result is null)
+            {
+                Snackbar.Add("Weapon not found.", Severity.Error);
+                return;
+            }
+
+            weapon = result;
+            StateHasChanged();
+            Snackbar.Add("Weapon found.", Severity.Success);
+        }
+        else
+        {
+            // This is a new weapon being added.
+            weapon = new Weapon("Sample Weapon");
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (weapon is null)
+            return;
+
+        if (weaponId.HasValue)
+        {
+            await WeaponService.UpdateWeaponAsync(weapon);
+        }
+        else
+        {
+            await WeaponService.AddWeaponAsync(weapon);
+        }
+
+        NavigationManager.NavigateTo("/weapon-list");
+    }
+}

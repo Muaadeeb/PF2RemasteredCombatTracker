@@ -1,0 +1,97 @@
+﻿@page "/character-codex-upsert"
+@page "/character-codex-upsert/{Id:int}"
+
+@inject ISnackbar Snackbar
+@inject ICharacterCodexService CharacterCodexService
+@inject NavigationManager NavigationManager
+
+<MudText Typo="Typo.h3">@(Id.HasValue ? "Edit Character Codex" : "Add Character Codex")</MudText>
+    <EditForm Model="@characterCodex" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <MudGrid>
+        <MudItem xs="12" sm="7">
+            <MudCard>
+                <MudCardContent>
+                     <MudTextField @bind-Value="characterCodex.CreatureName" Label="Creature Name" Variant="Variant.Text" Required />
+                     <MudNumericField @bind-Value="characterCodex.HP" Label="HP" />
+                     <MudNumericField @bind-Value="characterCodex.AC" Label="AC" />
+                     <MudNumericField @bind-Value="characterCodex.AttackBonusMelee" Label="Attack Bonus Melee" />
+                     <MudNumericField @bind-Value="characterCodex.AttackBonusRanged" Label="Attack Bonus Ranged" />
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Save</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="5">
+            <MudPaper Class="pa-4 mud-height-full">
+                <MudText Typo="Typo.subtitle2">Validation Summary</MudText>
+                @if (success)
+                {
+                    <MudText Color="Color.Success">Success</MudText>
+                }
+                else
+                {
+                    <MudText Color="@Color.Error">
+                        <ValidationSummary />
+                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudText Typo="Typo.body2" Align="Align.Center">
+                Fill out the form correctly to see the success message.
+            </MudText>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private CharacterCodex characterCodex = new CharacterCodex("Default", new List<Weapon>());
+    private Weapon weapon = new Weapon("Default");
+    private List<Weapon> weapons = new List<Weapon>();
+
+    private bool success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            var result = await CharacterCodexService.GetAsync(Id.Value);
+            if (result is null)
+            {
+                Snackbar.Add("Character Codex not found.", Severity.Error);
+                return;
+            }
+
+            characterCodex = result;
+            StateHasChanged();
+            Snackbar.Add("Character Codex found.", Severity.Success);
+        }
+        else
+        {
+            characterCodex = new CharacterCodex("Default", new List<Weapon>());
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (characterCodex is null)
+            return;
+
+        if (Id.HasValue)
+        {
+            await CharacterCodexService.UpdateAsync(characterCodex);
+        }
+        else
+        {
+            await CharacterCodexService.AddAsync(characterCodex);
+        }
+
+        NavigationManager.NavigateTo("/character-codex-list");
+    }
+}

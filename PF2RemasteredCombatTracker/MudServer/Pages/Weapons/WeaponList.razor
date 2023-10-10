@@ -1,0 +1,44 @@
+﻿@page "/weapon-list"
+
+@inject IWeaponService WeaponService
+@inject NavigationManager NavManager
+
+<MudText Typo="Typo.h3">Weapons</MudText>
+<MudTable Items="@weapons">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Damage Die</MudTh>
+        <MudTh>Damage Die Count</MudTh>
+        <MudTh>Damage Bonus</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Name</MudTd>
+        <MudTd>@context.DamageDie</MudTd>
+        <MudTd>@context.DamageDieCount</MudTd>
+        <MudTd>@context.DamageBonus</MudTd>
+        <MudTd>
+            <MudButton Color="Color.Primary" Size="Size.Small" OnClick="@(() => NavigateToWeapon(context.Id))">Edit</MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudButton Href="/weapon-upsert" Color="Color.Success">Add New Weapon</MudButton>
+
+@code {
+    private List<Weapon> weapons = new List<Weapon>();
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        weapons = await WeaponService.GetWeaponsAsync();
+    }
+
+
+    private void NavigateToWeapon(int weaponId)
+    {
+        NavManager.NavigateTo($"/weapon-upsert/{weaponId}");
+    }
+
+}
+

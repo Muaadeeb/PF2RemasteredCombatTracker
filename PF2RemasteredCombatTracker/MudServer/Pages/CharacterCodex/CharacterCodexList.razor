@@ -1,0 +1,45 @@
+﻿@page "/character-codex-list"
+
+@inject ICharacterCodexService CharacterCodexService
+@inject NavigationManager NavManager
+
+<MudText Typo="Typo.h3">Character Codex</MudText>
+
+<MudTable Items="@characterCodex">
+    <HeaderContent>
+        <MudTh>Creature Name</MudTh>
+        <MudTh>Damage Die</MudTh>
+        <MudTh>Damage Die Count</MudTh>
+        <MudTh>Damage Bonus</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.CreatureName</MudTd>
+        <MudTd>@context.HP</MudTd>
+        <MudTd>@context.AC</MudTd>
+        <MudTd>@context.AttackBonusMelee</MudTd>
+        <MudTd>@context.AttackBonusRanged</MudTd>
+        <MudTd>
+            <MudButton Color="Color.Primary" Size="Size.Small" OnClick="@(() => NavigateToCharacterCodex(context.Id))">Edit</MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudButton Href="/character-codex-upsert" Color="Color.Success">Add New Character Codex</MudButton>
+
+
+@code {
+    private List<CharacterCodex> characterCodex = new List<CharacterCodex>();
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        characterCodex = await CharacterCodexService.GetAllAsync();
+    }
+
+
+    private void NavigateToCharacterCodex(int characterCodexId)
+    {
+        NavManager.NavigateTo($"/character-codex-upsert/{characterCodexId}");
+    }
+}
