@@ -1,0 +1,108 @@
+﻿@page "/tactical-console"
+
+@inject ICharacterCodexService CharacterCodexService
+@inject NavigationManager NavigationManager
+
+<h3>TacticalConsoleDisplay</h3>
+
+<MudSelect Multiple="true" T="int" Label="Select characters" @bind-Value="lastSelectedIndex" Placeholder=" ">
+    <MudSelectItem Value="-1" Disabled="true" Hidden="true"></MudSelectItem>
+    @foreach (var character in allCharacters)
+    {
+        <MudSelectItem Value="@allCharacters.IndexOf(character)">@character.CreatureName</MudSelectItem>
+    }
+</MudSelect>
+
+<MudButton OnClick="AddSelectedCharacters">Add Selected Characters</MudButton>
+@foreach (var tacticalCharacter in tacticalCharacters)
+{
+    <div class="d-flex align-items-center border py-2">
+        <MudTextField Value="@tacticalCharacter.OriginalCharacter.CreatureName" ReadOnly="true" Variant="Variant.Outlined" Label="Name" />
+        <MudTextField Value="@tacticalCharacter.OriginalCharacter.AC" ReadOnly="true" Variant="Variant.Outlined" Label="AC" Class="ml-2" Style="width: 80px;" />
+        <MudNumericField @bind-Value="tacticalCharacter.Initiative" Label="Initiative" Variant="Variant.Outlined" Max="99" Min="0" Class="ml-2" Style="width: 80px;" />
+        <MudSwitch @bind-Checked="tacticalCharacter.IsFoe" Label="Foe" Class="ml-2" />
+        <MudButton OnClick="() => DuplicateCharacter(tacticalCharacter)" Class="ml-2">Duplicate</MudButton>
+        <MudButton Color="Color.Error" OnClick="() => RemoveCharacter(tacticalCharacter)" Class="ml-2">Remove</MudButton>
+    </div>
+}
+
+@code {
+
+    private List<CharacterCodex> allCharacters = new List<CharacterCodex>();
+    private List<TacticalCharacter> tacticalCharacters = new List<TacticalCharacter>();
+    private List<CharacterCodex> selectedCharacters = new List<CharacterCodex>();
+
+    private int lastSelectedIndex {
+        get => _lastSelectedIndex;
+        set {
+            if (value == -1) return; // Ignore -1 values
+            _lastSelectedIndex = value;
+            if (!selectedIndices.Contains(value))
+            {
+                selectedIndices.Add(value);
+            }
+            else
+            {
+                selectedIndices.Remove(value);
+            }
+            UpdateSelectedCharacters();
+        }
+    }
+
+
+    private int _lastSelectedIndex = -1;
+    private List<int> selectedIndices = new List<int>();
+    private Dictionary<string, int> characterDuplicationCounts = new Dictionary<string, int>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        allCharacters = (await CharacterCodexService.GetAllAsync()).OrderBy(c => c.CreatureName).ToList();
+    }
+        
+    private void AddSelectedCharacters()
+    {
+        foreach (var character in selectedCharacters)
+        {
+            tacticalCharacters.Add(new TacticalCharacter { OriginalCharacter = character, IsFoe = false });
+        }
+        selectedIndices.Clear();  // Clear selected indices after adding characters.
+        lastSelectedIndex = -1;  // Reset last selected index.
+    }
+
+    private void UpdateSelectedCharacters()
+    {
+        selectedCharacters = selectedIndices.Where(i => i >= 0 && i < allCharacters.Count).Select(i => allCharacters[i]).ToList();
+    }
+
+    private void RemoveCharacter(TacticalCharacter characterToRemove)
+    {
+        tacticalCharacters.Remove(characterToRemove);
+        StateHasChanged(); // Optional: To refresh the component and reflect the change in UI.
+    }
+
+    private void DuplicateCharacter(TacticalCharacter character)
+    {
+        // Get the base name of the character (without the # and number)
+        var baseName = character.OriginalCharacter.CreatureName.Split('#')[0].Trim();
+
+        // Increment the count for this character in the dictionary
+        if (characterDuplicationCounts.ContainsKey(baseName))
+        {
+            characterDuplicationCounts[baseName]++;
+        }
+        else
+        {
+            characterDuplicationCounts[baseName] = 1; // This is the first duplicate
+        }
+
+        // Create a clone of the character and adjust its name
+        var clone = new TacticalCharacter
+            {
+                OriginalCharacter = new CharacterCodex($"{baseName} #{characterDuplicationCounts[baseName]}", character.OriginalCharacter.Weapons.ToList()),
+                IsFoe = character.IsFoe,
+                Initiative = character.Initiative
+            };
+        tacticalCharacters.Add(clone);
+    }
+
+}

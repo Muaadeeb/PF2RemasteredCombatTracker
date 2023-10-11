@@ -3,20 +3,52 @@
 
 @inject ISnackbar Snackbar
 @inject ICharacterCodexService CharacterCodexService
+@inject IWeaponService WeaponService
 @inject NavigationManager NavigationManager
 
+
 <MudText Typo="Typo.h3">@(Id.HasValue ? "Edit Character Codex" : "Add Character Codex")</MudText>
-    <EditForm Model="@characterCodex" OnValidSubmit="HandleValidSubmit">
+<EditForm Model="@characterCodex" OnValidSubmit="HandleValidSubmit">
     <DataAnnotationsValidator />
     <MudGrid>
         <MudItem xs="12" sm="7">
             <MudCard>
                 <MudCardContent>
-                     <MudTextField @bind-Value="characterCodex.CreatureName" Label="Creature Name" Variant="Variant.Text" Required />
-                     <MudNumericField @bind-Value="characterCodex.HP" Label="HP" />
-                     <MudNumericField @bind-Value="characterCodex.AC" Label="AC" />
-                     <MudNumericField @bind-Value="characterCodex.AttackBonusMelee" Label="Attack Bonus Melee" />
-                     <MudNumericField @bind-Value="characterCodex.AttackBonusRanged" Label="Attack Bonus Ranged" />
+                    <MudTextField @bind-Value="characterCodex.CreatureName" Label="Creature Name" Variant="Variant.Text" Required />
+                    <MudNumericField @bind-Value="characterCodex.HP" Label="HP" />
+                    <MudNumericField @bind-Value="characterCodex.AC" Label="AC" />
+                    <MudNumericField @bind-Value="characterCodex.AttackBonusMelee" Label="Attack Bonus Melee" />
+                    <MudNumericField @bind-Value="characterCodex.AttackBonusRanged" Label="Attack Bonus Ranged" />
+                    
+                     <MudText Typo="Typo.h5">Associated Weapons</MudText>
+                     <MudTable Items="@characterCodex.Weapons">
+                         <HeaderContent>
+                             <MudTh>Name</MudTh>
+                             <MudTh>Damage Die</MudTh>
+                             <MudTh>Damage Die Count</MudTh>
+                             <MudTh>Damage Bonus</MudTh>
+                             <MudTh>Action</MudTh>
+                         </HeaderContent>
+                         <RowTemplate Context="associatedWeapon">
+                             <MudTd>@associatedWeapon.Name</MudTd>
+                             <MudTd>@associatedWeapon.DamageDie</MudTd>
+                             <MudTd>@associatedWeapon.DamageDieCount</MudTd>
+                             <MudTd>@associatedWeapon.DamageBonus</MudTd>
+                             <MudTd>
+                                 <MudButton Color="Color.Error" Size="Size.Small" OnClick="(() => RemoveWeapon(associatedWeapon))">Remove</MudButton>
+                             </MudTd>
+                         </RowTemplate>
+                     </MudTable>
+
+                     <MudText Typo="Typo.h5">Add New Weapon</MudText>
+                     <MudSelect T="Weapon" Label="Select a weapon" @bind-Value="selectedWeapon">
+                         @foreach (var weapon in availableWeapons)
+                        {
+                            <MudSelectItem Value="weapon">@weapon.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Color="Color.Primary" Size="Size.Small" OnClick="AddWeaponToCodex">Add Weapon</MudButton>
+
                 </MudCardContent>
                 <MudCardActions>
                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Save</MudButton>
@@ -46,7 +78,6 @@
     </MudGrid>
 </EditForm>
 
-
 @code {
     [Parameter]
     public int? Id { get; set; }
@@ -54,11 +85,18 @@
     private CharacterCodex characterCodex = new CharacterCodex("Default", new List<Weapon>());
     private Weapon weapon = new Weapon("Default");
     private List<Weapon> weapons = new List<Weapon>();
+    
+    private Weapon selectedWeapon;
+    private List<Weapon> allWeapons = new List<Weapon>();
+    private List<Weapon> availableWeapons = new List<Weapon>();
+
 
     private bool success;
 
     protected override async Task OnInitializedAsync()
     {
+        allWeapons = await WeaponService.GetWeaponsAsync();
+
         if (Id.HasValue)
         {
             var result = await CharacterCodexService.GetAsync(Id.Value);
@@ -69,13 +107,63 @@
             }
 
             characterCodex = result;
-            StateHasChanged();
             Snackbar.Add("Character Codex found.", Severity.Success);
         }
         else
         {
             characterCodex = new CharacterCodex("Default", new List<Weapon>());
         }
+
+        UpdateAvailableWeapons();
+        StateHasChanged();
+    }
+
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     if (Id.HasValue)
+    //     {
+    //         var result = await CharacterCodexService.GetAsync(Id.Value);
+    //         if (result is null)
+    //         {
+    //             Snackbar.Add("Character Codex not found.", Severity.Error);
+    //             return;
+    //         }
+
+    //         characterCodex = result;
+
+    //         allWeapons = await WeaponService.GetWeaponsAsync();
+
+    //         StateHasChanged();
+    //         Snackbar.Add("Character Codex found.", Severity.Success);
+    //     }
+    //     else
+    //     {
+    //         characterCodex = new CharacterCodex("Default", new List<Weapon>());
+    //     }
+    // }
+
+    private void UpdateAvailableWeapons()
+    {
+        availableWeapons = allWeapons.Where(w => !characterCodex.Weapons.Any(cw => cw.Id == w.Id)).ToList();
+    }
+
+    private void AddWeaponToCodex()
+    {
+        if (selectedWeapon != null && !characterCodex.Weapons.Contains(selectedWeapon))
+        {
+            characterCodex.Weapons.Add(selectedWeapon);
+            UpdateAvailableWeapons();
+        }
+        // Just to refresh the component
+        StateHasChanged();
+    }
+
+    private void RemoveWeapon(Weapon weaponToRemove)
+    {
+        characterCodex.Weapons.Remove(weaponToRemove);
+        UpdateAvailableWeapons();
+        // Just to refresh the component
+        StateHasChanged();
     }
 
     private async Task HandleValidSubmit()

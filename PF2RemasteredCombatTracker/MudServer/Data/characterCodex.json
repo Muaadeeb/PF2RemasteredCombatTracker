@@ -1,1 +1,37 @@
-[{"Id":1,"CreatureName":"Wolf","HP":13,"AC":14,"Weapons":[],"AttackBonusMelee":2,"AttackBonusRanged":0}]
+[
+  {
+    "Id": 1,
+    "CreatureName": "Wolf",
+    "HP": 13,
+    "AC": 14,
+    "Weapons": [
+      {
+        "Id": 1,
+        "Name": "Bite",
+        "DamageDie": 6,
+        "DamageDieCount": 1,
+        "DamageBonus": 0
+      }
+    ],
+    "AttackBonusMelee": 2,
+    "AttackBonusRanged": 0
+  },
+  {
+    "Id": 2,
+    "CreatureName": "Brian Thompson",
+    "HP": 42,
+    "AC": 14,
+    "Weapons": [
+      {
+        "Id": 2,
+        "Name": "Unarmed strike - large",
+        "DamageDie": 4,
+        "DamageDieCount": 1,
+        "DamageBonus": 0
+      }
+    ],
+    "AttackBonusMelee": 10,
+    "AttackBonusRanged": 0
+  }
+]
+
