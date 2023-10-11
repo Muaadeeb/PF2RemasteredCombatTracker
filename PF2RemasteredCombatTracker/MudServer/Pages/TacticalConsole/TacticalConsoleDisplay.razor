@@ -3,7 +3,25 @@
 @inject ICharacterCodexService CharacterCodexService
 @inject NavigationManager NavigationManager
 
-<h3>TacticalConsoleDisplay</h3>
+<MudText Typo="Typo.h3">TacticalConsoleDisplay</MudText>
+
+<!-- New Combat button -->
+<MudButton OnClick="StartNewCombat">New Combat</MudButton>
+
+@if (showCombatControls)
+{
+    <div class="d-flex align-items-center mt-3">
+        <!-- Readonly text field showing current round -->
+        <MudTextField @bind-Value="currentRound" ReadOnly="true" Variant="Variant.Outlined" Class="ml-2" Label="Combat Round" />
+
+        <!-- Next Round button -->
+        <MudButton OnClick="GoToNextRound" Class="ml-2" Variant="Variant.Outlined">Next Round</MudButton>
+    </div>
+
+    <MudDivider DividerType="DividerType.Inset" Style="margin: 25px;" />
+}
+
+
 
 <MudSelect Multiple="true" T="int" Label="Select characters" @bind-Value="lastSelectedIndex" Placeholder=" ">
     <MudSelectItem Value="-1" Disabled="true" Hidden="true"></MudSelectItem>
@@ -14,6 +32,9 @@
 </MudSelect>
 
 <MudButton OnClick="AddSelectedCharacters">Add Selected Characters</MudButton>
+
+<MudDivider DividerType="DividerType.Inset" Style="margin: 25px;" />
+
 @foreach (var tacticalCharacter in tacticalCharacters)
 {
     <div class="d-flex align-items-center border py-2">
@@ -49,14 +70,35 @@
         }
     }
 
-
     private int _lastSelectedIndex = -1;
     private List<int> selectedIndices = new List<int>();
     private Dictionary<string, int> characterDuplicationCounts = new Dictionary<string, int>();
 
+    // Variables to control combat rounds UI
+    private bool showCombatControls = false;
+    private string currentRound = "Round 1";
+    private int roundCounter = 1;
+    private string ReadOnly { get; set; } = "Read Only";
+
+
+
+
     protected override async Task OnInitializedAsync()
     {
         allCharacters = (await CharacterCodexService.GetAllAsync()).OrderBy(c => c.CreatureName).ToList();
+    }
+
+    private void StartNewCombat()
+    {
+        showCombatControls = true;
+        roundCounter = 1;
+        currentRound = $"{roundCounter}";
+    }
+
+    private void GoToNextRound()
+    {
+        roundCounter++;
+        currentRound = $"{roundCounter}";
     }
         
     private void AddSelectedCharacters()
