@@ -16,6 +16,7 @@
                      <MudNumericField @bind-Value="weapon.DamageDie" Label="Damage Die" />
                      <MudNumericField @bind-Value="weapon.DamageDieCount" Label="Damage Die Count" />
                      <MudNumericField @bind-Value="weapon.DamageBonus" Label="Damage Bonus" />
+                     <MudSwitch @bind-Checked="weapon.IsMelee" Label="Is Melee"></MudSwitch>
                 </MudCardContent>
                 <MudCardActions>
                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Save</MudButton>

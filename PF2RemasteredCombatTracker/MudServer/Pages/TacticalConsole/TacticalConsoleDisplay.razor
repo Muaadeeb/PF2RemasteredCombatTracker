@@ -1,4 +1,5 @@
 ﻿@page "/tactical-console"
+@using MudServer.Common.Enums;
 
 @inject ICharacterCodexService CharacterCodexService
 @inject NavigationManager NavigationManager
@@ -14,25 +15,18 @@
 </MudSelect>
 
 <MudButton OnClick="AddSelectedCharacters">Add Selected Characters</MudButton>
-
 <MudDivider DividerType="DividerType.Inset" Style="margin: 25px;" />
-
-<!-- New Combat button -->
 <MudButton OnClick="StartNewCombat">New Combat</MudButton>
 
 @if (showCombatControls)
 {
     <div class="d-flex align-items-center mt-3">
-        <!-- Readonly text field showing current round -->
         <MudTextField @bind-Value="currentRound" ReadOnly="true" Variant="Variant.Outlined" Class="ml-2" Label="Combat Round" />
-
-        <!-- Next Round button -->
         <MudButton OnClick="GoToNextRound" Class="ml-2" Variant="Variant.Outlined">Next Round</MudButton>
     </div>
 
     <MudDivider DividerType="DividerType.Inset" Style="margin: 25px;" />
 }
-
 
 @foreach (var tacticalCharacter in tacticalCharacters)
 {
@@ -40,14 +34,34 @@
         <MudTextField Value="@tacticalCharacter.OriginalCharacter.CreatureName" ReadOnly="true" Variant="Variant.Outlined" Label="Name" />
         <MudTextField Value="@tacticalCharacter.OriginalCharacter.AC" ReadOnly="true" Variant="Variant.Outlined" Label="AC" Class="ml-2" Style="width: 80px;" />
         <MudTextField Value="@tacticalCharacter.OriginalCharacter.HP.ToString()" ReadOnly="true" Variant="Variant.Outlined" Label="HP" Class="ml-2" Style="width: 80px;" />
-        <MudNumericField @bind-Value="tacticalCharacter.OriginalCharacter.HPCurrent" Label="Current HP" Variant="Variant.Outlined" Class="ml-2" Style="width: 80px;" />
+        <MudNumericField @bind-Value="tacticalCharacter.OriginalCharacter.HPCurrent" Label="Current HP" Variant="Variant.Outlined" Class="@GetCurrentHPClass(tacticalCharacter)" Style="width: 80px;" />
         <MudNumericField @bind-Value="tacticalCharacter.Initiative" Label="Initiative" Variant="Variant.Outlined" Max="99" Min="0" Class="ml-2" Style="width: 80px;" />
         <MudSwitch @bind-Checked="tacticalCharacter.IsFoe" Label="Foe" Class="ml-2" />
         <MudButton OnClick="() => DuplicateCharacter(tacticalCharacter)" Class="ml-2">Duplicate</MudButton>
         <MudButton Color="Color.Error" OnClick="() => RemoveCharacter(tacticalCharacter)" Class="ml-2">Remove</MudButton>
+
+        @if (tacticalCharacter.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dying)
+        {
+            <MudButton OnClick="() => StabilizeCombatant(tacticalCharacter)" Class="ml-2" Color="Color.Success">Stabilize</MudButton>
+        }
     </div>
 }
 
+<MudButton OnClick="SimulateBattle" Class="ml-2" Variant="Variant.Outlined">Battle</MudButton>
+<MudButton OnClick="ResetBattle" Variant="Variant.Outlined">Reset Battle</MudButton>
+
+
+<div class="battle-log">
+    <h4>Battle Log</h4>
+    <ul>
+        @foreach (var log in BattleLog)
+        {
+            var logType = GetLogType(log);
+            <li class="@logType">@log</li>
+        }
+    </ul>
+
+</div>
 
 @code {
 
@@ -81,12 +95,14 @@
     private string currentRound = "Round 1";
     private int roundCounter = 1;
     private string ReadOnly { get; set; } = "Read Only";
+    private List<string> BattleLog = new List<string>();
+    private bool battleInProgress = false;
 
     protected override async Task OnInitializedAsync()
     {
         allCharacters = (await CharacterCodexService.GetAllAsync()).OrderBy(c => c.CreatureName).ToList();
     }
-        
+
     private void AddSelectedCharacters()
     {
         foreach (var character in selectedCharacters)
@@ -164,14 +180,223 @@
     {
         showCombatControls = true;
         roundCounter = 1;
+        battleInProgress = true;
+
+        BattleLog.Clear();  // Clear the log first
+        BattleLog.Add($"Combat Round #{roundCounter}");  // Then add the entry for the first round
+
         currentRound = $"Round {roundCounter}";
         SortTacticalCharacters();
+        SimulateBattle();
     }
+
 
     private void GoToNextRound()
     {
         roundCounter++;
         currentRound = $"Round {roundCounter}";
+        BattleLog.Add($"Combat Round #{roundCounter}");  // This line records the start of a new combat round
         SortTacticalCharacters();
+        SimulateBattle(); // This will run the battle simulation for the next round.
+    }
+
+    private void SimulateBattle()
+    {
+        List<CharacterCodex> newlyDyingThisRound = new List<CharacterCodex>();
+
+        foreach (var combatant in tacticalCharacters)
+        {
+            if (SkipAction(combatant)) continue;
+
+            var enemy = FindEnemy(combatant);
+            if (enemy == null) continue;
+
+            PerformAttack(combatant, enemy, newlyDyingThisRound);
+        }
+
+        TryStabilizeDyingCharacters(newlyDyingThisRound);
+
+        if (CheckBattleEndCondition())
+        {
+            BattleLog.Add("The battle has ended.");
+            battleInProgress = false;
+        }
+
+        StateHasChanged();
+    }
+
+    private bool SkipAction(TacticalCharacter combatant)
+    {
+        var status = combatant.OriginalCharacter.CurrentHealthStatus;
+        if (status == HealthStatus.Dead || status == HealthStatus.Dying || status == HealthStatus.Stable)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private TacticalCharacter? FindEnemy(TacticalCharacter combatant)
+    {
+        return combatant.IsFoe
+            ? tacticalCharacters.Where(c => !c.IsFoe && c.OriginalCharacter.CurrentHealthStatus != HealthStatus.Dead && c.OriginalCharacter.CurrentHealthStatus != HealthStatus.Dying && c.OriginalCharacter.CurrentHealthStatus != HealthStatus.Stable).OrderBy(_ => Guid.NewGuid()).FirstOrDefault()
+            : tacticalCharacters.Where(c => c.IsFoe && c.OriginalCharacter.CurrentHealthStatus != HealthStatus.Dead && c.OriginalCharacter.CurrentHealthStatus != HealthStatus.Dying && c.OriginalCharacter.CurrentHealthStatus != HealthStatus.Stable).OrderBy(_ => Guid.NewGuid()).FirstOrDefault();
+    }
+
+    private void PerformAttack(TacticalCharacter attacker, TacticalCharacter defender, List<CharacterCodex> newlyDyingThisRound)
+    {
+        if (defender.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dead ||
+        defender.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dying ||
+        defender.OriginalCharacter.CurrentHealthStatus == HealthStatus.Stable)
+        {
+            // If the defender is Dead, Dying or Stabilized, do not attack them
+            BattleLog.Add($"{attacker.OriginalCharacter.CreatureName} cannot attack {defender.OriginalCharacter.CreatureName} because they are {defender.OriginalCharacter.CurrentHealthStatus}.");
+            return;
+        }
+
+        foreach (var weapon in attacker.OriginalCharacter.Weapons)
+        {
+            int attackBonus = weapon.IsMelee ? attacker.OriginalCharacter.AttackBonusMelee : attacker.OriginalCharacter.AttackBonusRanged;
+            var attackRoll = RollD20() + attackBonus;
+            int damageBonus = weapon.IsMelee ? attacker.OriginalCharacter.BonusDamageMelee : attacker.OriginalCharacter.BonusDamageRanged;
+
+            if (attackRoll == 20 || attackRoll >= defender.OriginalCharacter.AC + 9) // Critical Hit
+            {
+                var damage = (RollDamage(weapon.DamageDie, weapon.DamageDieCount) + weapon.DamageBonus + damageBonus) * 2;
+                defender.OriginalCharacter.HPCurrent -= damage;
+                BattleLog.Add($"{attacker.OriginalCharacter.CreatureName} critically hit {defender.OriginalCharacter.CreatureName} for {damage} damage!");
+            }
+            else if (attackRoll >= defender.OriginalCharacter.AC) // Hit
+            {
+                var damage = RollDamage(weapon.DamageDie, weapon.DamageDieCount) + weapon.DamageBonus + damageBonus;
+                defender.OriginalCharacter.HPCurrent -= damage;
+                BattleLog.Add($"{attacker.OriginalCharacter.CreatureName} hit {defender.OriginalCharacter.CreatureName} for {damage} damage!");
+            }
+            else // Miss
+            {
+                BattleLog.Add($"{attacker.OriginalCharacter.CreatureName} missed {defender.OriginalCharacter.CreatureName}!");
+            }
+        }
+
+        UpdateHealthStatus(defender, newlyDyingThisRound);
+    }
+
+    private void UpdateHealthStatus(TacticalCharacter defender, List<CharacterCodex> newlyDyingThisRound)
+    {
+        if (defender.OriginalCharacter.HPCurrent <= -10 && defender.OriginalCharacter.CurrentHealthStatus != HealthStatus.Dead)
+        {
+            defender.OriginalCharacter.CurrentHealthStatus = HealthStatus.Dead;
+            BattleLog.Add($"{defender.OriginalCharacter.CreatureName} has died from their wounds.");
+        }
+        else if (defender.OriginalCharacter.HPCurrent < 0 && defender.OriginalCharacter.CurrentHealthStatus == HealthStatus.Healthy)
+        {
+            defender.OriginalCharacter.CurrentHealthStatus = HealthStatus.Dying;
+            newlyDyingThisRound.Add(defender.OriginalCharacter);
+            BattleLog.Add($"{defender.OriginalCharacter.CreatureName} has fallen in battle.");
+        }
+    }
+
+    private bool CheckBattleEndCondition()
+    {
+        var foesStatus = tacticalCharacters
+            .Where(c => c.IsFoe)
+            .All(c => c.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dead
+                      || c.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dying
+                      || c.OriginalCharacter.CurrentHealthStatus == HealthStatus.Stable);
+
+        var alliesStatus = tacticalCharacters
+            .Where(c => !c.IsFoe)
+            .All(c => c.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dead
+                      || c.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dying
+                      || c.OriginalCharacter.CurrentHealthStatus == HealthStatus.Stable);
+
+        return foesStatus || alliesStatus;
+    }
+
+    private int RollD20()
+    {
+        var rand = new Random();
+        return rand.Next(1, 21);
+    }
+
+    private int RollDamage(int die, int count)
+    {
+        var rand = new Random();
+        int total = 0;
+        for (int i = 0; i < count; i++)
+        {
+            total += rand.Next(1, die + 1);
+        }
+        return total;
+    }
+
+    private string GetLogType(string log)
+    {
+        if (log.Contains("critically hit")) return "critical-hit";
+        if (log.Contains("hit")) return "hit";
+        if (log.Contains("missed") && !log.Contains("critically")) return "miss";
+        if (log.Contains("critically missed")) return "critical-failure";
+        return "";
+    }
+
+    private string GetCurrentHPClass(TacticalCharacter tacticalCharacter)
+    {
+        return tacticalCharacter.OriginalCharacter.HPCurrent <= tacticalCharacter.OriginalCharacter.HP * 0.25 ? "ml-2 low-health" : "ml-2";
+    }
+
+    private void TryStabilizeDyingCharacters(List<CharacterCodex> newlyDyingThisRound)
+    {
+        foreach (var combatant in tacticalCharacters.Where(c => c.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dying))
+        {
+            if (!newlyDyingThisRound.Contains(combatant.OriginalCharacter))
+            {
+                // 50% chance to fail stabilization
+                if (RollD20() < 10)
+                {
+                    // Failed to stabilize, decrease HP by 1
+                    combatant.OriginalCharacter.HPCurrent -= 1;
+                    BattleLog.Add($"{combatant.OriginalCharacter.CreatureName} failed to stabilize and lost 1 HP.");
+
+                    // Check if the character is dead
+                    if (combatant.OriginalCharacter.HPCurrent <= -10)
+                    {
+                        combatant.OriginalCharacter.CurrentHealthStatus = HealthStatus.Dead;
+                        BattleLog.Add($"{combatant.OriginalCharacter.CreatureName} has died from their wounds.");
+                    }
+                }
+                else
+                {
+                    // Successfully stabilized
+                    StabilizeCombatant(combatant);
+                }
+            }
+        }
+    }
+
+    private void StabilizeCombatant(TacticalCharacter combatant)
+    {
+        combatant.OriginalCharacter.CurrentHealthStatus = HealthStatus.Stable;
+        BattleLog.Add($"{combatant.OriginalCharacter.CreatureName} has been stabilized by an unknown entity and is now unconscious but stable.");
+        // Removed the StateHasChanged() call from here. Consider updating UI state after all logic is processed.
+    }
+
+    private void ResetBattle()
+    {
+        // Reset each combatant's state to default
+        foreach (var combatant in tacticalCharacters)
+        {
+            combatant.OriginalCharacter.HPCurrent = combatant.OriginalCharacter.HP;
+            combatant.OriginalCharacter.CurrentHealthStatus = HealthStatus.Healthy;
+        }
+
+        // Clear the BattleLog
+        BattleLog.Clear();
+
+        // Reset round counter and other related data
+        roundCounter = 1;
+        currentRound = $"Round {roundCounter}";
+        battleInProgress = false;
+        showCombatControls = false;  // Hide combat controls if you want to
+
+        StateHasChanged();  // Update the UI to reflect the changes
     }
 }

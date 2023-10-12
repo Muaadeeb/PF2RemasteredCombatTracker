@@ -55,6 +55,8 @@ public class CharacterCodexService : ICharacterCodexService
             characterCodex.AC = updatedCharacterCodex.AC;
             characterCodex.AttackBonusMelee = updatedCharacterCodex.AttackBonusMelee;
             characterCodex.AttackBonusRanged = updatedCharacterCodex.AttackBonusRanged;
+            characterCodex.BonusDamageMelee = updatedCharacterCodex.BonusDamageMelee;
+            characterCodex.BonusDamageRanged = updatedCharacterCodex.BonusDamageRanged;
             characterCodex.Weapons = updatedCharacterCodex.Weapons;
 
             await SaveAsync(results);

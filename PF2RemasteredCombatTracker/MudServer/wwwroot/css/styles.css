@@ -1,0 +1,20 @@
+﻿.critical-hit {
+	color: green;
+}
+
+.miss {
+	color: gray;
+}
+
+.hit {
+	color: blue;
+}
+
+.critical-failure {
+	color: red;
+}
+
+.low-health {
+	color: red;
+	font-weight: bold;
+}

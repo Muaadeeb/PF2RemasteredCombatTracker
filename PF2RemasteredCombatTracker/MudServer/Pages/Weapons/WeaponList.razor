@@ -10,6 +10,7 @@
         <MudTh>Damage Die</MudTh>
         <MudTh>Damage Die Count</MudTh>
         <MudTh>Damage Bonus</MudTh>
+        <MudTh>IsMelee</MudTh>
         <MudTh>Actions</MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -17,6 +18,8 @@
         <MudTd>@context.DamageDie</MudTd>
         <MudTd>@context.DamageDieCount</MudTd>
         <MudTd>@context.DamageBonus</MudTd>
+        <MudTd>@context.IsMelee</MudTd>
+
         <MudTd>
             <MudButton Color="Color.Primary" Size="Size.Small" OnClick="@(() => NavigateToWeapon(context.Id))">Edit</MudButton>
         </MudTd>

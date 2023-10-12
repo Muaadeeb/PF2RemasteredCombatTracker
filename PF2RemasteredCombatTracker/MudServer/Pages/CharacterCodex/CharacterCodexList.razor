@@ -10,8 +10,11 @@
         <MudTh>Creature Name</MudTh>
         <MudTh>HP</MudTh>
         <MudTh>Current HP</MudTh>
-        <MudTh>Damage Die Count</MudTh>
-        <MudTh>Damage Bonus</MudTh>
+        <MudTh>AC</MudTh>
+        <MudTh>ATR Melee</MudTh>
+        <MudTh>ATR Ranged</MudTh>
+        <MudTh>Damage Bonus Melee</MudTh>
+        <MudTh>Damage Bonus Ranged</MudTh>
         <MudTh>Actions</MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -19,8 +22,11 @@
         <MudTd>@context.HP</MudTd>
         <MudTd>@context.HPCurrent</MudTd>
         <MudTd>@context.AC</MudTd>
+
         <MudTd>@context.AttackBonusMelee</MudTd>
         <MudTd>@context.AttackBonusRanged</MudTd>
+        <MudTd>@context.BonusDamageMelee</MudTd>
+        <MudTd>@context.BonusDamageRanged</MudTd>
         <MudTd>
             <MudButton Color="Color.Primary" Size="Size.Small" OnClick="@(() => NavigateToCharacterCodex(context.Id))">Edit</MudButton>
         </MudTd>

@@ -18,8 +18,10 @@
                     <MudNumericField @bind-Value="characterCodex.HP" Label="HP" />
                      <MudNumericField @bind-Value="characterCodex.HPCurrent" Label="Current HP" />
                     <MudNumericField @bind-Value="characterCodex.AC" Label="AC" />
-                    <MudNumericField @bind-Value="characterCodex.AttackBonusMelee" Label="Attack Bonus Melee" />
-                    <MudNumericField @bind-Value="characterCodex.AttackBonusRanged" Label="Attack Bonus Ranged" />
+                    <MudNumericField @bind-Value="characterCodex.AttackBonusMelee" Label="ATR Melee" />
+                    <MudNumericField @bind-Value="characterCodex.AttackBonusRanged" Label="ATR Ranged" />
+                    <MudNumericField @bind-Value="characterCodex.BonusDamageMelee" Label="Damage Bonus Melee" />
+                    <MudNumericField @bind-Value="characterCodex.BonusDamageRanged" Label="Damage Bonus Ranged" />
                     
                      <MudText Typo="Typo.h5">Associated Weapons</MudText>
                      <MudTable Items="@characterCodex.Weapons">

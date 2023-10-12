@@ -55,6 +55,7 @@ public class WeaponService : IWeaponService
             weapon.DamageDie = updatedWeapon.DamageDie;
             weapon.DamageDieCount = updatedWeapon.DamageDieCount;
             weapon.DamageBonus = updatedWeapon.DamageBonus;
+            weapon.IsMelee = updatedWeapon.IsMelee;
             await SaveWeaponsAsync(weapons);
         }
     }
