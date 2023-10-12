@@ -5,6 +5,18 @@
 
 <MudText Typo="Typo.h3">TacticalConsoleDisplay</MudText>
 
+<MudSelect Multiple="true" T="int" Label="Select characters" @bind-Value="lastSelectedIndex" Placeholder=" ">
+    <MudSelectItem Value="-1" Disabled="true" Hidden="true"></MudSelectItem>
+    @foreach (var character in allCharacters)
+    {
+        <MudSelectItem Value="@allCharacters.IndexOf(character)">@character.CreatureName</MudSelectItem>
+    }
+</MudSelect>
+
+<MudButton OnClick="AddSelectedCharacters">Add Selected Characters</MudButton>
+
+<MudDivider DividerType="DividerType.Inset" Style="margin: 25px;" />
+
 <!-- New Combat button -->
 <MudButton OnClick="StartNewCombat">New Combat</MudButton>
 
@@ -22,30 +34,20 @@
 }
 
 
-
-<MudSelect Multiple="true" T="int" Label="Select characters" @bind-Value="lastSelectedIndex" Placeholder=" ">
-    <MudSelectItem Value="-1" Disabled="true" Hidden="true"></MudSelectItem>
-    @foreach (var character in allCharacters)
-    {
-        <MudSelectItem Value="@allCharacters.IndexOf(character)">@character.CreatureName</MudSelectItem>
-    }
-</MudSelect>
-
-<MudButton OnClick="AddSelectedCharacters">Add Selected Characters</MudButton>
-
-<MudDivider DividerType="DividerType.Inset" Style="margin: 25px;" />
-
 @foreach (var tacticalCharacter in tacticalCharacters)
 {
-    <div class="d-flex align-items-center border py-2">
+    <div class="d-flex align-items-center border py-2" style="padding: 5px">
         <MudTextField Value="@tacticalCharacter.OriginalCharacter.CreatureName" ReadOnly="true" Variant="Variant.Outlined" Label="Name" />
         <MudTextField Value="@tacticalCharacter.OriginalCharacter.AC" ReadOnly="true" Variant="Variant.Outlined" Label="AC" Class="ml-2" Style="width: 80px;" />
+        <MudTextField Value="@tacticalCharacter.OriginalCharacter.HP.ToString()" ReadOnly="true" Variant="Variant.Outlined" Label="HP" Class="ml-2" Style="width: 80px;" />
+        <MudNumericField @bind-Value="tacticalCharacter.OriginalCharacter.HPCurrent" Label="Current HP" Variant="Variant.Outlined" Class="ml-2" Style="width: 80px;" />
         <MudNumericField @bind-Value="tacticalCharacter.Initiative" Label="Initiative" Variant="Variant.Outlined" Max="99" Min="0" Class="ml-2" Style="width: 80px;" />
         <MudSwitch @bind-Checked="tacticalCharacter.IsFoe" Label="Foe" Class="ml-2" />
         <MudButton OnClick="() => DuplicateCharacter(tacticalCharacter)" Class="ml-2">Duplicate</MudButton>
         <MudButton Color="Color.Error" OnClick="() => RemoveCharacter(tacticalCharacter)" Class="ml-2">Remove</MudButton>
     </div>
 }
+
 
 @code {
 
@@ -80,25 +82,9 @@
     private int roundCounter = 1;
     private string ReadOnly { get; set; } = "Read Only";
 
-
-
-
     protected override async Task OnInitializedAsync()
     {
         allCharacters = (await CharacterCodexService.GetAllAsync()).OrderBy(c => c.CreatureName).ToList();
-    }
-
-    private void StartNewCombat()
-    {
-        showCombatControls = true;
-        roundCounter = 1;
-        currentRound = $"{roundCounter}";
-    }
-
-    private void GoToNextRound()
-    {
-        roundCounter++;
-        currentRound = $"{roundCounter}";
     }
         
     private void AddSelectedCharacters()
@@ -137,14 +123,55 @@
             characterDuplicationCounts[baseName] = 1; // This is the first duplicate
         }
 
-        // Create a clone of the character and adjust its name
+        // Create a deep copy of the original character
+        var copiedCharacter = DeepCopyCharacterCodex(character.OriginalCharacter);
+        copiedCharacter.CreatureName = $"{baseName} #{characterDuplicationCounts[baseName]}";
+
+        // Create a clone of the TacticalCharacter and adjust its OriginalCharacter
         var clone = new TacticalCharacter
             {
-                OriginalCharacter = new CharacterCodex($"{baseName} #{characterDuplicationCounts[baseName]}", character.OriginalCharacter.Weapons.ToList()),
+                OriginalCharacter = copiedCharacter,
                 IsFoe = character.IsFoe,
                 Initiative = character.Initiative
             };
         tacticalCharacters.Add(clone);
     }
 
+
+    private CharacterCodex DeepCopyCharacterCodex(CharacterCodex original)
+    {
+        var copiedCharacter = new CharacterCodex(original.CreatureName, new List<Weapon>(original.Weapons))
+            {
+                Id = original.Id,
+                HP = original.HP,
+                HPCurrent = original.HPCurrent,
+                AC = original.AC,
+                AttackBonusMelee = original.AttackBonusMelee,
+                AttackBonusRanged = original.AttackBonusRanged
+            };
+        return copiedCharacter;
+    }
+
+    private void SortTacticalCharacters()
+    {
+        tacticalCharacters = tacticalCharacters
+            .OrderByDescending(tc => tc.Initiative)
+            .ThenBy(tc => tc.OriginalCharacter.CreatureName)
+            .ToList();
+    }
+
+    private void StartNewCombat()
+    {
+        showCombatControls = true;
+        roundCounter = 1;
+        currentRound = $"Round {roundCounter}";
+        SortTacticalCharacters();
+    }
+
+    private void GoToNextRound()
+    {
+        roundCounter++;
+        currentRound = $"Round {roundCounter}";
+        SortTacticalCharacters();
+    }
 }

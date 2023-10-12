@@ -51,6 +51,7 @@ public class CharacterCodexService : ICharacterCodexService
         {
             characterCodex.CreatureName = updatedCharacterCodex.CreatureName;
             characterCodex.HP = updatedCharacterCodex.HP;
+            characterCodex.HPCurrent = updatedCharacterCodex.HPCurrent;
             characterCodex.AC = updatedCharacterCodex.AC;
             characterCodex.AttackBonusMelee = updatedCharacterCodex.AttackBonusMelee;
             characterCodex.AttackBonusRanged = updatedCharacterCodex.AttackBonusRanged;

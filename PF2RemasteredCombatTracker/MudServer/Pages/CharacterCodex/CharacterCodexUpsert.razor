@@ -16,6 +16,7 @@
                 <MudCardContent>
                     <MudTextField @bind-Value="characterCodex.CreatureName" Label="Creature Name" Variant="Variant.Text" Required />
                     <MudNumericField @bind-Value="characterCodex.HP" Label="HP" />
+                     <MudNumericField @bind-Value="characterCodex.HPCurrent" Label="Current HP" />
                     <MudNumericField @bind-Value="characterCodex.AC" Label="AC" />
                     <MudNumericField @bind-Value="characterCodex.AttackBonusMelee" Label="Attack Bonus Melee" />
                     <MudNumericField @bind-Value="characterCodex.AttackBonusRanged" Label="Attack Bonus Ranged" />
@@ -118,30 +119,6 @@
         StateHasChanged();
     }
 
-    // protected override async Task OnInitializedAsync()
-    // {
-    //     if (Id.HasValue)
-    //     {
-    //         var result = await CharacterCodexService.GetAsync(Id.Value);
-    //         if (result is null)
-    //         {
-    //             Snackbar.Add("Character Codex not found.", Severity.Error);
-    //             return;
-    //         }
-
-    //         characterCodex = result;
-
-    //         allWeapons = await WeaponService.GetWeaponsAsync();
-
-    //         StateHasChanged();
-    //         Snackbar.Add("Character Codex found.", Severity.Success);
-    //     }
-    //     else
-    //     {
-    //         characterCodex = new CharacterCodex("Default", new List<Weapon>());
-    //     }
-    // }
-
     private void UpdateAvailableWeapons()
     {
         availableWeapons = allWeapons.Where(w => !characterCodex.Weapons.Any(cw => cw.Id == w.Id)).ToList();
@@ -154,7 +131,7 @@
             characterCodex.Weapons.Add(selectedWeapon);
             UpdateAvailableWeapons();
         }
-        // Just to refresh the component
+        
         StateHasChanged();
     }
 
@@ -162,7 +139,6 @@
     {
         characterCodex.Weapons.Remove(weaponToRemove);
         UpdateAvailableWeapons();
-        // Just to refresh the component
         StateHasChanged();
     }
 

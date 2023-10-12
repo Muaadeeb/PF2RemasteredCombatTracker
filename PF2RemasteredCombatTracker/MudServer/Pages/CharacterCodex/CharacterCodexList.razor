@@ -8,7 +8,8 @@
 <MudTable Items="@characterCodex">
     <HeaderContent>
         <MudTh>Creature Name</MudTh>
-        <MudTh>Damage Die</MudTh>
+        <MudTh>HP</MudTh>
+        <MudTh>Current HP</MudTh>
         <MudTh>Damage Die Count</MudTh>
         <MudTh>Damage Bonus</MudTh>
         <MudTh>Actions</MudTh>
@@ -16,6 +17,7 @@
     <RowTemplate>
         <MudTd>@context.CreatureName</MudTd>
         <MudTd>@context.HP</MudTd>
+        <MudTd>@context.HPCurrent</MudTd>
         <MudTd>@context.AC</MudTd>
         <MudTd>@context.AttackBonusMelee</MudTd>
         <MudTd>@context.AttackBonusRanged</MudTd>
