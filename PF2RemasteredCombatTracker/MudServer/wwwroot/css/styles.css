@@ -18,3 +18,11 @@
 	color: red;
 	font-weight: bold;
 }
+
+.text-red {
+	color: red;
+}
+
+.text-default {
+	color: darkblue; /* Or any other default color you'd like */
+}

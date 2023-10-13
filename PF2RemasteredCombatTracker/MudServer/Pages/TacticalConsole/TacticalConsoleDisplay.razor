@@ -16,7 +16,11 @@
 
 <MudButton OnClick="AddSelectedCharacters">Add Selected Characters</MudButton>
 <MudDivider DividerType="DividerType.Inset" Style="margin: 25px;" />
-<MudButton OnClick="StartNewCombat">New Combat</MudButton>
+
+<MudItem Style="margin-bottom: 25px">
+    <MudButton OnClick="StartNewCombat" Color="Color.Primary">New Combat</MudButton>
+    <MudButton OnClick="ResetBattle" Variant="Variant.Outlined" Color="Color.Secondary">Reset Battle</MudButton>
+</MudItem>
 
 @if (showCombatControls)
 {
@@ -31,10 +35,24 @@
 @foreach (var tacticalCharacter in tacticalCharacters)
 {
     <div class="d-flex align-items-center border py-2" style="padding: 5px">
-        <MudTextField Value="@tacticalCharacter.OriginalCharacter.CreatureName" ReadOnly="true" Variant="Variant.Outlined" Label="Name" />
+        <MudTextField Value="@tacticalCharacter.OriginalCharacter.CreatureName"
+                      ReadOnly="true"
+                      Variant="Variant.Outlined"
+                      Label="Name"
+                      Style="@(tacticalCharacter.IsFoe ? "color: red;" : "color: darkblue;")" />
+
+        @* <MudTextField Value="@tacticalCharacter.OriginalCharacter.CreatureName" ReadOnly="true" Variant="Variant.Outlined" Label="Name" /> *@
         <MudTextField Value="@tacticalCharacter.OriginalCharacter.AC" ReadOnly="true" Variant="Variant.Outlined" Label="AC" Class="ml-2" Style="width: 80px;" />
         <MudTextField Value="@tacticalCharacter.OriginalCharacter.HP.ToString()" ReadOnly="true" Variant="Variant.Outlined" Label="HP" Class="ml-2" Style="width: 80px;" />
-        <MudNumericField @bind-Value="tacticalCharacter.OriginalCharacter.HPCurrent" Label="Current HP" Variant="Variant.Outlined" Class="@GetCurrentHPClass(tacticalCharacter)" Style="width: 80px;" />
+
+        <MudNumericField @bind-Value="tacticalCharacter.OriginalCharacter.HPCurrent"
+                         Label="Current HP"
+                         Variant="Variant.Outlined"
+                         Class="@GetCurrentHPClass(tacticalCharacter)"
+                         Style="@GetHPTexColor(tacticalCharacter)" />
+
+
+        @* <MudNumericField @bind-Value="tacticalCharacter.OriginalCharacter.HPCurrent" Label="Current HP" Variant="Variant.Outlined" Class="@GetCurrentHPClass(tacticalCharacter)" Style="width: 80px;" /> *@
         <MudNumericField @bind-Value="tacticalCharacter.Initiative" Label="Initiative" Variant="Variant.Outlined" Max="99" Min="0" Class="ml-2" Style="width: 80px;" />
         <MudSwitch @bind-Checked="tacticalCharacter.IsFoe" Label="Foe" Class="ml-2" />
         <MudButton OnClick="() => DuplicateCharacter(tacticalCharacter)" Class="ml-2">Duplicate</MudButton>
@@ -42,16 +60,47 @@
 
         @if (tacticalCharacter.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dying)
         {
-            <MudButton OnClick="() => StabilizeCombatant(tacticalCharacter)" Class="ml-2" Color="Color.Success">Stabilize</MudButton>
+            <MudButton OnClick="() => StabilizeCombatant(tacticalCharacter, true)" Class="ml-2" Color="Color.Success">Stabilize</MudButton>
         }
     </div>
 }
 
-<MudButton OnClick="SimulateBattle" Class="ml-2" Variant="Variant.Outlined">Battle</MudButton>
-<MudButton OnClick="ResetBattle" Variant="Variant.Outlined">Reset Battle</MudButton>
+
+<MudPaper Class="battle-log">
+    <MudText Typo="Typo.h4">Battle Log</MudText>
+    <MudList>
+        @foreach (var log in BattleLog)
+        {
+            var logType = GetLogType(log);
+            <MudListItem Class="@logType">
+                @if (log.StartsWith("Combat Round #"))
+                {
+                    <span style="font-weight: bold; text-decoration: underline;">@log</span>
+                }
+                else
+                {
+                    @log
+                }
+            </MudListItem>
+        }
+    </MudList>
+</MudPaper>
 
 
-<div class="battle-log">
+@* <MudPaper Class="battle-log">
+    <MudText Typo="Typo.h4">Battle Log</MudText>
+    <MudList>
+        @foreach (var log in BattleLog)
+        {
+            var logType = GetLogType(log);
+            <MudListItem Class="@logType">
+                @log
+            </MudListItem>
+        }
+    </MudList>
+</MudPaper>
+ *@
+@* <div class="battle-log">
     <h4>Battle Log</h4>
     <ul>
         @foreach (var log in BattleLog)
@@ -62,7 +111,7 @@
     </ul>
 
 </div>
-
+ *@
 @code {
 
     private List<CharacterCodex> allCharacters = new List<CharacterCodex>();
@@ -366,17 +415,24 @@
                 else
                 {
                     // Successfully stabilized
-                    StabilizeCombatant(combatant);
+                    StabilizeCombatant(combatant, false);
                 }
             }
         }
     }
 
-    private void StabilizeCombatant(TacticalCharacter combatant)
+    private void StabilizeCombatant(TacticalCharacter combatant, bool isManual)
     {
         combatant.OriginalCharacter.CurrentHealthStatus = HealthStatus.Stable;
-        BattleLog.Add($"{combatant.OriginalCharacter.CreatureName} has been stabilized by an unknown entity and is now unconscious but stable.");
-        // Removed the StateHasChanged() call from here. Consider updating UI state after all logic is processed.
+
+        if (isManual)
+        {
+            BattleLog.Add($"{combatant.OriginalCharacter.CreatureName} has been stabilized by an unknown entiy and is now unconscious but stable.");
+        }
+        else
+        {
+            BattleLog.Add($"{combatant.OriginalCharacter.CreatureName} has been stabilized and is now unconscious but stable.");
+        }
     }
 
     private void ResetBattle()
@@ -399,4 +455,31 @@
 
         StateHasChanged();  // Update the UI to reflect the changes
     }
+
+    public string GetHPTexColor(TacticalCharacter tacticalCharacter)
+    {
+        if (tacticalCharacter.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dying)
+            return "color: red;";
+        if (tacticalCharacter.OriginalCharacter.CurrentHealthStatus == HealthStatus.Dead)
+            return "color: gray;";
+        if (tacticalCharacter.OriginalCharacter.CurrentHealthStatus == HealthStatus.Stable)
+            return "color: orange;";
+
+        double currentHp = tacticalCharacter.OriginalCharacter.HPCurrent;
+        double maxHp = tacticalCharacter.OriginalCharacter.HP;
+        double percent = (currentHp / maxHp) * 100;
+
+        if (percent >= 76)
+            return "color: green;";
+        if (percent >= 51)
+            return "color: yellowgreen;";
+        if (percent >= 26)
+            return "color: yellow;";
+        return "color: red;";
+    }
+
+    // bool IsCreatureAFoe(string creatureName)
+    // {
+    //     return tacticalCharacters?.Any(tc => tc.OriginalCharacter.CreatureName == creatureName && tc.IsFoe) ?? false;
+    // }
 }
