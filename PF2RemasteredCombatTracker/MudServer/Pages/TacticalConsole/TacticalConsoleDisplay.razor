@@ -65,7 +65,6 @@
     </div>
 }
 
-
 <MudPaper Class="battle-log">
     <MudText Typo="Typo.h4">Battle Log</MudText>
     <MudList>
@@ -86,32 +85,6 @@
     </MudList>
 </MudPaper>
 
-
-@* <MudPaper Class="battle-log">
-    <MudText Typo="Typo.h4">Battle Log</MudText>
-    <MudList>
-        @foreach (var log in BattleLog)
-        {
-            var logType = GetLogType(log);
-            <MudListItem Class="@logType">
-                @log
-            </MudListItem>
-        }
-    </MudList>
-</MudPaper>
- *@
-@* <div class="battle-log">
-    <h4>Battle Log</h4>
-    <ul>
-        @foreach (var log in BattleLog)
-        {
-            var logType = GetLogType(log);
-            <li class="@logType">@log</li>
-        }
-    </ul>
-
-</div>
- *@
 @code {
 
     private List<CharacterCodex> allCharacters = new List<CharacterCodex>();
@@ -312,13 +285,15 @@
             {
                 var damage = (RollDamage(weapon.DamageDie, weapon.DamageDieCount) + weapon.DamageBonus + damageBonus) * 2;
                 defender.OriginalCharacter.HPCurrent -= damage;
-                BattleLog.Add($"{attacker.OriginalCharacter.CreatureName} critically hit {defender.OriginalCharacter.CreatureName} for {damage} damage!");
+                var hitLocation = GetHitLocation("Humanoid");
+                BattleLog.Add($"{attacker.OriginalCharacter.CreatureName} critically hit {defender.OriginalCharacter.CreatureName} on the {hitLocation} for {damage} damage!");
             }
             else if (attackRoll >= defender.OriginalCharacter.AC) // Hit
             {
                 var damage = RollDamage(weapon.DamageDie, weapon.DamageDieCount) + weapon.DamageBonus + damageBonus;
                 defender.OriginalCharacter.HPCurrent -= damage;
-                BattleLog.Add($"{attacker.OriginalCharacter.CreatureName} hit {defender.OriginalCharacter.CreatureName} for {damage} damage!");
+                var hitLocation = GetHitLocation("Humanoid");
+                BattleLog.Add($"{attacker.OriginalCharacter.CreatureName} hit {defender.OriginalCharacter.CreatureName} on the {hitLocation} for {damage} damage!");
             }
             else // Miss
             {
@@ -328,6 +303,53 @@
 
         UpdateHealthStatus(defender, newlyDyingThisRound);
     }
+
+    public string GetHitLocation(string creatureType)
+    {
+        string hitLocation = "";
+        Random rnd = new Random();
+        int randomChance = rnd.Next(1, 101);
+
+        if (creatureType == "Humanoid")
+        {
+            if (randomChance <= 5)
+                hitLocation = "Head";
+            else if (randomChance <= 7)
+                hitLocation = "Neck";
+            else if (randomChance <= 11)
+                hitLocation = "Left Shoulder";
+            else if (randomChance <= 15)
+                hitLocation = "Right Shoulder";
+            else if (randomChance <= 40)
+                hitLocation = "Chest";
+            else if (randomChance <= 50)
+                hitLocation = "Upper Back";
+            else if (randomChance <= 60)
+                hitLocation = "Lower Back";
+            else if (randomChance <= 68)
+                hitLocation = "Abdomen";
+            else if (randomChance <= 75)
+                hitLocation = "Left Arm";
+            else if (randomChance <= 82)
+                hitLocation = "Right Arm";
+            else if (randomChance <= 84)
+                hitLocation = "Left Hand";
+            else if (randomChance <= 86)
+                hitLocation = "Right Hand";
+            else if (randomChance <= 93)
+                hitLocation = "Left Leg";
+            else if (randomChance <= 100)
+                hitLocation = "Right Leg";
+            // You can expand this to include other body parts or conditions.
+        }
+        else if (creatureType == "Quadruped")
+        {
+            // TBD: fill in for Quadrupeds
+        }
+
+        return hitLocation;
+    }
+
 
     private void UpdateHealthStatus(TacticalCharacter defender, List<CharacterCodex> newlyDyingThisRound)
     {
